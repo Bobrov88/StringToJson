@@ -23,11 +23,12 @@ json parseStop(const std::string& input) {
         // Обработка расстояний
         json roadDistancesJson;
         std::string roadDistances = match[4].str();
-        std::regex distanceRegex(R"(([^,]+) (\d+)m)");
+        std::regex distanceRegex(R"((\d+)m to ([\w\s]+))");
         std::smatch distanceMatch;
         std::string::const_iterator searchStart(roadDistances.cbegin());
         while (std::regex_search(searchStart, roadDistances.cend(), distanceMatch, distanceRegex)) {
-            roadDistancesJson[distanceMatch[1].str()] = std::stoi(distanceMatch[2].str());
+            distanceMatch[2].str().pop_back();
+            roadDistancesJson[distanceMatch[2].str()] = std::stoi(distanceMatch[1].str());
             searchStart = distanceMatch.suffix().first;
         }
 
@@ -83,7 +84,7 @@ int main() {
     std::string input;
 
     // Пример входных данных для остановок
-    std::cout << "Enter string:\n";
+    std::cout << "Введите остановку или автобус:\n";
     std::getline(std::cin, input);
 
     try {
@@ -94,7 +95,7 @@ int main() {
             json busJson = parseBus(input);
             std::cout << busJson.dump(4) << std::endl; // Форматированный вывод JSON
         } else {
-            std::cout << "Error." << std::endl;
+            std::cout << "Неподдерживаемый формат." << std::endl;
         }
     } catch (const std::invalid_argument& e) {
         std::cout << e.what() << std::endl;
