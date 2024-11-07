@@ -1,0 +1,10 @@
+[requires]
+nlohmann_json/3.11.3
+
+[generators]
+cmake
+virtualenv
+cmake_find_package
+
+[layout]
+cmake_layout
