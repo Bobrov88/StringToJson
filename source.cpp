@@ -98,67 +98,72 @@ int main()
 {
     std::string input;
     std::istream &in(std::cin);
-    std::cout << "{ \"base_requests\":[";
-    bool is_first = true;
-    while (std::getline(in, input))
+    std::getline(in, input);
+    if (input._Starts_with("1"))
     {
-        try
+        std::cout << "{ \"base_requests\":[";
+        bool is_first = true;
+        while (std::getline(in, input))
         {
-            if (input._Starts_with("---"))
+            try
             {
-                break;
+                if (input._Starts_with("---"))
+                {
+                    break;
+                }
+                if (!is_first)
+                    std::cout << ",";
+                if (input._Starts_with("Stop"))
+                {
+                    json stopJson = parseStop(input);
+                    std::cout << stopJson.dump(4) << std::endl; // Форматированный вывод JSON
+                }
+                else if (input._Starts_with("Bus"))
+                {
+                    json busJson = parseBus(input);
+                    std::cout << busJson.dump(4) << std::endl; // Форматированный вывод JSON
+                }
+                else
+                {
+                    std::cout << "-----------------------Error------------------\n";
+                }
             }
-            if (!is_first)
-                std::cout << ",";
-            if (input._Starts_with("Stop"))
+            catch (const std::exception &e)
             {
-                json stopJson = parseStop(input);
-                std::cout << stopJson.dump(4) << std::endl; // Форматированный вывод JSON
+                std::cout << e.what() << std::endl;
             }
-            else if (input._Starts_with("Bus"))
+            is_first = false;
+        }
+        std::cout << "],\n";
+        std::cout << "\"stat_requests\": ";
+        int Id = 1;
+        std::vector<json> jsonArray;
+        while (std::getline(in, input))
+        {
+            if (input.find("Bus") == 0)
             {
-                json busJson = parseBus(input);
-                std::cout << busJson.dump(4) << std::endl; // Форматированный вывод JSON
+                auto name = input.substr(4); // Извлекаем название (после "Bus ")
+                json busJson;
+                busJson["id"] = Id++;
+                busJson["type"] = "Bus";
+                busJson["name"] = name;
+                jsonArray.push_back(busJson);
             }
-            else
+            else if (input.find("Stop") == 0)
             {
-                std::cout<<"-----------------------Error------------------\n";
+                auto name = input.substr(5); // Извлекаем название (после "Stop ")
+                json stopJson;
+                stopJson["id"] = Id++;
+                stopJson["type"] = "Stop";
+                stopJson["name"] = name;
+                jsonArray.push_back(stopJson);
             }
         }
-        catch (const std::exception &e)
-        {
-            std::cout << e.what() << std::endl;
-        }
-        is_first = false;
+        json finalJson = jsonArray;
+        std::cout << finalJson.dump(4) << std::endl;
+        std::cout << "]";
+    } else {
+        
     }
-    std::cout << "],\n";
-    std::cout << "\"stat_requests\": ";
-    std::string line;
-    int Id = 1;
-    std::vector<json> jsonArray;
-    while (std::getline(in, line))
-    {
-        if (line.find("Bus") == 0)
-        {
-            auto name = line.substr(4); // Извлекаем название (после "Bus ")
-            json busJson;
-            busJson["id"] = Id++;
-            busJson["type"] = "Bus";
-            busJson["name"] = name;
-            jsonArray.push_back(busJson);
-        }
-        else if (line.find("Stop") == 0)
-        {
-            auto name = line.substr(5); // Извлекаем название (после "Stop ")
-            json stopJson;
-            stopJson["id"] = Id++;
-            stopJson["type"] = "Stop";
-            stopJson["name"] = name;
-            jsonArray.push_back(stopJson);
-        }
-    }
-    json finalJson = jsonArray;
-    std::cout << finalJson.dump(4) << std::endl;
-    std::cout << "]";
     return 0;
 }
