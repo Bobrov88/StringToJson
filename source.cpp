@@ -8,7 +8,7 @@
 
 using json = nlohmann::json;
 
-std::string& trim(std::string &str)
+std::string &trim(std::string &str)
 {
     const auto b = str.find_first_not_of(" ");
     const auto c = str.find_last_not_of(" ");
@@ -97,29 +97,68 @@ json parseBus(const std::string &input)
 int main()
 {
     std::string input;
-    
-    std::getline(std::cin, input);
-    try
+    std::istream &in(std::cin);
+    std::cout << "{ \"base_requests\":[";
+    bool is_first = true;
+    while (std::getline(in, input))
     {
-        if (input._Starts_with("Stop"))
+        try
         {
-            json stopJson = parseStop(input);
-            std::cout << stopJson.dump(4) << std::endl; // Форматированный вывод JSON
+            if (input._Starts_with("---"))
+            {
+                break;
+            }
+            if (!is_first)
+                std::cout << ",";
+            if (input._Starts_with("Stop"))
+            {
+                json stopJson = parseStop(input);
+                std::cout << stopJson.dump(4) << std::endl; // Форматированный вывод JSON
+            }
+            else if (input._Starts_with("Bus"))
+            {
+                json busJson = parseBus(input);
+                std::cout << busJson.dump(4) << std::endl; // Форматированный вывод JSON
+            }
+            else
+            {
+                std::cout<<"-----------------------Error------------------\n";
+            }
         }
-        else if (input._Starts_with("Bus"))
+        catch (const std::exception &e)
         {
-            json busJson = parseBus(input);
-            std::cout << busJson.dump(4) << std::endl; // Форматированный вывод JSON
+            std::cout << e.what() << std::endl;
         }
-        else
+        is_first = false;
+    }
+    std::cout << "],\n";
+    std::cout << "\"stat_requests\": ";
+    std::string line;
+    int Id = 1;
+    std::vector<json> jsonArray;
+    while (std::getline(in, line))
+    {
+        if (line.find("Bus") == 0)
         {
-            std::cout << "Неподдерживаемый формат." << std::endl;
+            auto name = line.substr(4); // Извлекаем название (после "Bus ")
+            json busJson;
+            busJson["id"] = Id++;
+            busJson["type"] = "Bus";
+            busJson["name"] = name;
+            jsonArray.push_back(busJson);
+        }
+        else if (line.find("Stop") == 0)
+        {
+            auto name = line.substr(5); // Извлекаем название (после "Stop ")
+            json stopJson;
+            stopJson["id"] = Id++;
+            stopJson["type"] = "Stop";
+            stopJson["name"] = name;
+            jsonArray.push_back(stopJson);
         }
     }
-    catch (const std::exception &e)
-    {
-        std::cout << e.what() << std::endl;
-    }
-
+    json finalJson = jsonArray;
+    std::cout << finalJson.dump(4) << std::endl;
+    std::cout << "]";
     return 0;
 }
