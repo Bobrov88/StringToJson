@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <sstream>
 #include <nlohmann/json.hpp>
 #include <regex>
@@ -93,9 +94,65 @@ json parseBus(const std::string &input)
     throw std::invalid_argument("Invalid Bus input format.");
 }
 
-// Главная функция
-int main()
+void replaceBusNames(const std::string &inputFilename, const std::string &outputFilename)
 {
+    std::ifstream inputFile(inputFilename);
+    std::ofstream outputFile(outputFilename);
+
+    if (!inputFile.is_open() || !outputFile.is_open())
+    {
+        std::cerr << "Ошибка открытия файла." << std::endl;
+        return;
+    }
+
+    std::string line;
+    std::string fullfile;
+    std::regex busPattern(R"(Bus(\s*[A-Za-z0-9]+)*:)"); // regex для поиска названия автобуса
+    // Читаем файл построчно
+    while (std::getline(inputFile, line))
+    {
+        fullfile += line;
+        fullfile += "\n";
+    }
+
+    std::istringstream is(fullfile);
+    while (std::getline(is, line))
+    {
+        if (line._Starts_with("Bus"))
+        {
+            for (std::sregex_iterator it = std::sregex_iterator(line.begin(), line.end(), busPattern);
+                 it != std::sregex_iterator(); it++)
+            {
+                std::smatch match;
+                match = *it;
+                std::string tmp = match.str(0);
+                match.str(0) = match.str(0).substr(4, match.length(0)-4);
+                std::replace(tmp.begin(), tmp.end(), ' ', '_');
+                size_t pos = 0;
+                while ((pos = fullfile.find(match.str(0), pos)) != std::string::npos)
+                {
+                    fullfile.replace(pos, match.length(0), tmp);
+                    pos += tmp.length();
+                }
+            }
+        }
+    }
+    outputFile << fullfile;
+    inputFile.close();
+    outputFile.close();
+}
+
+// Главная функция
+int main(int argc, char **argv)
+{
+    if (argc >= 2)
+    {
+        std::string inputFilename = "out.txt";    // Имя входного файла
+        std::string outputFilename = "_out_.txt"; // Имя выходного файла
+        replaceBusNames(inputFilename, outputFilename);
+        std::cout << "Обработка завершена. Результат сохранен в " << outputFilename << std::endl;
+        return 0;
+    }
     std::string input;
     std::istream &in(std::cin);
     std::getline(in, input);
@@ -162,8 +219,71 @@ int main()
         json finalJson = jsonArray;
         std::cout << finalJson.dump(4) << std::endl;
         std::cout << "]";
-    } else {
-        
+    }
+    else
+    {
+        std::string line;
+        int request_id = 1;               // Идентификатор запроса, который будет увеличиваться
+        json output_json = json::array(); // массив для хранения всех записей
+
+        while (std::getline(std::cin, line))
+        {
+            json output;
+
+            if (line.find("not found") != std::string::npos)
+            {
+                // Обработка ошибок "not found"
+                output["request_id"] = request_id++;
+                output["error_message"] = "not found";
+            }
+            else if (line.find("bus") != std::string::npos)
+            {
+                // Обработка строк с автобусами
+                std::vector<std::string> buses;
+                std::istringstream iss(line);
+                std::string word;
+
+                while (iss >> word)
+                {
+                    if (word == "bus")
+                    {
+                        std::string bus;
+                        iss >> bus; // Получаем ID автобуса
+                        buses.push_back(bus);
+                    }
+                }
+                output["buses"] = buses;
+                output["request_id"] = request_id++;
+            }
+            else if (line.find("stop") != std::string::npos)
+            {
+                // Обработка строк с остановками
+                std::regex pattern("([0-9]+) stops on route.*?([0-9]+) unique stops.*?([0-9.]+) route length.*?([0-9.]+) curvature");
+                std::smatch matches;
+
+                if (std::regex_search(line, matches, pattern))
+                {
+                    int stop_count = std::stoi(matches[1]);
+                    int unique_stop_count = std::stoi(matches[2]);
+                    float route_length = std::stof(matches[3]);
+                    float curvature = std::stof(matches[4]);
+
+                    output["request_id"] = request_id++;
+                    output["stops"] = stop_count;
+                    output["unique_stops"] = unique_stop_count;
+                    output["route_length"] = route_length;
+                    output["curvature"] = curvature;
+                }
+            }
+
+            if (!output.empty())
+            {
+                output_json.push_back(output); // Добавляем результат в общий массив
+            }
+        }
+
+        // Печатаем общий JSON-результат
+        std::cout << output_json.dump(4); // Дамп с отступами для удобства чтения
     }
     return 0;
 }
