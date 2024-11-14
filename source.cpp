@@ -107,7 +107,7 @@ void replaceBusNames(const std::string &inputFilename, const std::string &output
 
     std::string line;
     std::string fullfile;
-    std::regex busPattern(R"(Bus(\s*[A-Za-z0-9]+)*:)"); // regex для поиска названия автобуса
+    std::regex busPattern(R"(Bus(\s*[A-Za-z0-9])*:)"); // regex для поиска названия автобуса
     // Читаем файл построчно
     while (std::getline(inputFile, line))
     {
@@ -125,13 +125,13 @@ void replaceBusNames(const std::string &inputFilename, const std::string &output
             {
                 std::smatch match;
                 match = *it;
-                std::string tmp = match.str(0);
-                match.str(0) = match.str(0).substr(4, match.length(0)-4);
+                std::string tmp = match.str(0).substr(4, match.length(0)-5);
+                std::string old_tmp = match.str(0).substr(4, match.length(0)-5);
                 std::replace(tmp.begin(), tmp.end(), ' ', '_');
                 size_t pos = 0;
-                while ((pos = fullfile.find(match.str(0), pos)) != std::string::npos)
+                while ((pos = fullfile.find(old_tmp, pos)) != std::string::npos)
                 {
-                    fullfile.replace(pos, match.length(0), tmp);
+                    fullfile.replace(pos, old_tmp.size(), tmp);
                     pos += tmp.length();
                 }
             }
