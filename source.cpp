@@ -107,8 +107,8 @@ void replaceBusNames(const std::string &inputFilename, const std::string &output
 
     std::string line;
     std::string fullfile;
-    std::regex busPattern(R"(Bus(\s*[A-Za-z0-9])*:)"); // regex для поиска названия автобуса
-    // Читаем файл построчно
+    std::regex pattern(R"((Bus|Stop)(\s*[A-Za-z0-9])*:)");
+
     while (std::getline(inputFile, line))
     {
         fullfile += line;
@@ -118,22 +118,30 @@ void replaceBusNames(const std::string &inputFilename, const std::string &output
     std::istringstream is(fullfile);
     while (std::getline(is, line))
     {
-        if (line._Starts_with("Bus"))
+        for (std::sregex_iterator it = std::sregex_iterator(line.begin(), line.end(), pattern);
+             it != std::sregex_iterator(); it++)
         {
-            for (std::sregex_iterator it = std::sregex_iterator(line.begin(), line.end(), busPattern);
-                 it != std::sregex_iterator(); it++)
+            std::smatch match;
+            match = *it;
+            std::string tmp, old_tmp;
+            std::cout<<"match="<<match.str(0)<<"\n";
+            if (line._Starts_with("Bus"))
             {
-                std::smatch match;
-                match = *it;
-                std::string tmp = match.str(0).substr(4, match.length(0)-5);
-                std::string old_tmp = match.str(0).substr(4, match.length(0)-5);
-                std::replace(tmp.begin(), tmp.end(), ' ', '_');
-                size_t pos = 0;
-                while ((pos = fullfile.find(old_tmp, pos)) != std::string::npos)
-                {
-                    fullfile.replace(pos, old_tmp.size(), tmp);
-                    pos += tmp.length();
-                }
+                tmp = match.str(0).substr(4, match.length(0) - 5);
+                std::cout << tmp << "\n";
+            }
+            if (line._Starts_with("Stop"))
+            {
+                tmp = match.str(0).substr(5, match.length(0) - 6);
+                std::cout << tmp << "\n";
+            }
+            old_tmp = tmp;
+            std::replace(tmp.begin(), tmp.end(), ' ', '_');
+            size_t pos = 0;
+            while ((pos = fullfile.find(old_tmp, pos)) != std::string::npos)
+            {
+                fullfile.replace(pos, old_tmp.size(), tmp);
+                pos += tmp.length();
             }
         }
     }
@@ -147,10 +155,9 @@ int main(int argc, char **argv)
 {
     if (argc >= 2)
     {
-        std::string inputFilename = "out.txt";    // Имя входного файла
-        std::string outputFilename = "_out_.txt"; // Имя выходного файла
-        replaceBusNames(inputFilename, outputFilename);
-        std::cout << "Обработка завершена. Результат сохранен в " << outputFilename << std::endl;
+        replaceBusNames("in.txt", "_in_.txt");
+        replaceBusNames("out.txt", "_out_.txt");
+        std::cout << "Готово " << std::endl;
         return 0;
     }
     std::string input;
@@ -158,7 +165,8 @@ int main(int argc, char **argv)
     std::getline(in, input);
     if (input._Starts_with("1"))
     {
-        std::cout << "{ \"base_requests\":[";
+    std::ofstream of("in_json.txt");
+        of << "{ \"base_requests\":[";
         bool is_first = true;
         while (std::getline(in, input))
         {
@@ -169,16 +177,16 @@ int main(int argc, char **argv)
                     break;
                 }
                 if (!is_first)
-                    std::cout << ",";
+                    of << ",";
                 if (input._Starts_with("Stop"))
                 {
                     json stopJson = parseStop(input);
-                    std::cout << stopJson.dump(4) << std::endl; // Форматированный вывод JSON
+                    of << stopJson.dump(4) << std::endl; // Форматированный вывод JSON
                 }
                 else if (input._Starts_with("Bus"))
                 {
                     json busJson = parseBus(input);
-                    std::cout << busJson.dump(4) << std::endl; // Форматированный вывод JSON
+                    of << busJson.dump(4) << std::endl; // Форматированный вывод JSON
                 }
                 else
                 {
@@ -191,8 +199,8 @@ int main(int argc, char **argv)
             }
             is_first = false;
         }
-        std::cout << "],\n";
-        std::cout << "\"stat_requests\": ";
+        of << "],\n";
+        of << "\"stat_requests\": ";
         int Id = 1;
         std::vector<json> jsonArray;
         while (std::getline(in, input))
@@ -217,15 +225,16 @@ int main(int argc, char **argv)
             }
         }
         json finalJson = jsonArray;
-        std::cout << finalJson.dump(4) << std::endl;
-        std::cout << "]";
+        of << finalJson.dump(4) << std::endl;
+        of << "]";
+        of.close();
     }
     else
     {
         std::string line;
         int request_id = 1;               // Идентификатор запроса, который будет увеличиваться
         json output_json = json::array(); // массив для хранения всех записей
-
+        std::ofstream of("out_json.txt");
         while (std::getline(std::cin, line))
         {
             json output;
@@ -283,7 +292,7 @@ int main(int argc, char **argv)
         }
 
         // Печатаем общий JSON-результат
-        std::cout << output_json.dump(4); // Дамп с отступами для удобства чтения
+        of << output_json.dump(4); // Дамп с отступами для удобства чтения
     }
     return 0;
 }
