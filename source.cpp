@@ -73,20 +73,9 @@ json parseBus(const std::string &input)
             stops.push_back(trim(it->str()));
             ++it;
         }
-        bool isRoundtrip = stops.front() == stops.back();
 
-        if (!isRoundtrip)
-        {
-            std::vector<std::string> tmp;
-            tmp.reserve(stops.size());
-            for (auto it = stops.rbegin() + 1; it != stops.rend(); ++it)
-            { // Обратный порядок
-                tmp.push_back(*it);
-            }
-            stops.insert(stops.end(), tmp.begin(), tmp.end());
-        }
         busJson["stops"] = stops;
-        busJson["is_roundtrip"] = isRoundtrip;
+        busJson["is_roundtrip"] = stops.front() == stops.back();
 
         return busJson;
     }
@@ -238,7 +227,7 @@ int main(int argc, char **argv)
                 output["request_id"] = request_id++;
                 output["error_message"] = "not found";
             }
-            else if (line.find("bus") != std::string::npos)
+            else if (line.find("Stop") == 0)
             {
                 // Обработка строк с автобусами
                 std::vector<std::string> buses;
@@ -247,32 +236,36 @@ int main(int argc, char **argv)
 
                 while (iss >> word)
                 {
-                    if (word == "bus")
+                    if (word == "buses")
                     {
                         std::string bus;
-                        iss >> bus; // Получаем ID автобуса
+                        while (iss >> bus) {
+                        iss >> bus;
                         buses.push_back(bus);
+                        }
+                        break;
                     }
                 }
+                std::sort(buses.begin(), buses.end());
                 output["buses"] = buses;
                 output["request_id"] = request_id++;
             }
-            else if (line.find("stop") != std::string::npos)
+            else if (line.find("Bus") == 0)
             {
                 // Обработка строк с остановками
-                std::regex pattern("([0-9]+) stops on route.*?([0-9]+) unique stops.*?([0-9.]+) route length.*?([0-9.]+) curvature");
+                std::regex pattern(R"(([0-9]+) stops on route.*?([0-9]+) unique stops.*?(\d.\d+e[+-]?\d+) route length.*?([0-9.]+) curvature)"); // TODO regex for 1.23423e+07
                 std::smatch matches;
 
                 if (std::regex_search(line, matches, pattern))
                 {
                     int stop_count = std::stoi(matches[1]);
                     int unique_stop_count = std::stoi(matches[2]);
-                    float route_length = std::stof(matches[3]);
+                    int route_length = static_cast<int>(std::stod(matches[3]));
                     float curvature = std::stof(matches[4]);
 
                     output["request_id"] = request_id++;
-                    output["stops"] = stop_count;
-                    output["unique_stops"] = unique_stop_count;
+                    output["stop_count"] = stop_count;
+                    output["unique_stop_count"] = unique_stop_count;
                     output["route_length"] = route_length;
                     output["curvature"] = curvature;
                 }

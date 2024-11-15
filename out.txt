@@ -1,3 +1,4 @@
+22
 Bus I99Ifx0cFG5cNGheXRch: 31 stops on route, 16 unique stops, 1.40047e+07 route length, 27.1026 curvature
 Stop RAAWoZwGJpnHZDNn: not found
 Bus poW6rkVnh: 84 stops on route, 79 unique stops, 4.08392e+07 route length, 26.907 curvature
