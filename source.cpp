@@ -124,17 +124,10 @@ void replaceBusNames(const std::string &inputFilename, const std::string &output
             std::smatch match;
             match = *it;
             std::string tmp, old_tmp;
-            std::cout<<"match="<<match.str(0)<<"\n";
             if (line._Starts_with("Bus"))
-            {
                 tmp = match.str(0).substr(4, match.length(0) - 5);
-                std::cout << tmp << "\n";
-            }
             if (line._Starts_with("Stop"))
-            {
                 tmp = match.str(0).substr(5, match.length(0) - 6);
-                std::cout << tmp << "\n";
-            }
             old_tmp = tmp;
             std::replace(tmp.begin(), tmp.end(), ' ', '_');
             size_t pos = 0;
@@ -165,7 +158,7 @@ int main(int argc, char **argv)
     std::getline(in, input);
     if (input._Starts_with("1"))
     {
-    std::ofstream of("in_json.txt");
+        std::ofstream of("in_json.txt");
         of << "{ \"base_requests\":[";
         bool is_first = true;
         while (std::getline(in, input))
@@ -226,7 +219,7 @@ int main(int argc, char **argv)
         }
         json finalJson = jsonArray;
         of << finalJson.dump(4) << std::endl;
-        of << "]";
+        of << "}";
         of.close();
     }
     else
